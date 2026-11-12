@@ -1,0 +1,33 @@
+﻿<div class="form" style="max-width:980px">
+    <p class="warning">Test on a copy of your save first. Paid DLC items are never added.</p>
+    @{ string? heading = null; }
+    @foreach (var g in DrgUnlocks.Groups)
+    {
+        if (g.Section != heading)
+        {
+            heading = g.Section;
+            <h2>@heading</h2>
+            if (heading == DrgUnlocks.SchematicsSection)
+            {
+                <p class="note">@DrgUnlocks.SchematicsNote</p>
+            }
+        }
+        <div class="row" style="grid-template-columns: 300px 260px auto">
+            <label>@g.Label</label>
+            <span class="muted">@g.Status(S.Save!)</span>
+            <span class="trail"><button @onclick="() => Apply(g)">@g.Button</button></span>
+        </div>
+    }
+    <p class="note">@DrgUnlocks.PerksNote</p>
+</div>
+
+@code {
+    [CascadingParameter] public EditorState S { get; set; } = default!;
+
+    private void Apply(UnlockGroup g)
+    {
+        int added = g.Apply(S.Save!);
+        if (added > 0) S.MarkDirty();
+        S.Log(added > 0 ? $"{g.Label}: {added} added." : $"{g.Label}: all already unlocked.");
+    }
+}

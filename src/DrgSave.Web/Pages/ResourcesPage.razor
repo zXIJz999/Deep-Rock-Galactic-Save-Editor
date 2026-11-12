@@ -1,0 +1,31 @@
+<div class="form" style="max-width:820px">
+    <h2>Money and points</h2>
+    <NumberRow Label="Credits" Value="@S.Save!.GetInt(DrgKnown.Credits, out _)" Max="99999999"
+               OnSet="v => Change(() => S.Save.SetInt(DrgKnown.Credits, v))" />
+    <NumberRow Label="Perk points" Value="@(S.Save.GetInt(DrgKnown.PerkPoints, out _) ?? 0)" Max="9999"
+               OnSet="v => Change(() => S.Save.EnsureRootInt(DrgKnown.PerkPoints).Value = v)" />
+    @if (S.Save.GuidMap(DrgKnown.OwnedResources) == null)
+    {
+        <p class="note">This save has no resources yet. Changing one below adds the list the game uses.</p>
+    }
+    @foreach (var group in DrgKnown.Resources.GroupBy(r => r.Group))
+    {
+        <h2>@group.Key</h2>
+        @foreach (var r in group)
+        {
+            <NumberRow Label="@r.Name" Value="@((int)S.Save.GetResource(r.Guid))" Max="99999"
+                       OnSet="v => Change(() => S.Save.SetResource(r.Guid, v))" />
+        }
+    }
+</div>
+
+@code {
+    [CascadingParameter] public EditorState S { get; set; } = default!;
+
+    private void Change(Action write)
+    {
+        write();
+        S.MarkDirty();
+        S.Log("Changed.");
+    }
+}

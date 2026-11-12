@@ -1,0 +1,18 @@
+<div class="form" style="max-width:820px">
+    @foreach (var d in DrgKnown.Dwarves)
+    {
+        <h2>@d.Name</h2>
+        var rec = S.Save!.Characters().FirstOrDefault(c => string.Equals(c.id, d.Guid, StringComparison.OrdinalIgnoreCase)).record;
+        if (rec == null)
+        {
+            <p class="note">Not found in this save.</p>
+            continue;
+        }
+        <FieldNumber Label="Class XP" Record="rec" Field="XP" Max="10000000" />
+        <FieldNumber Label="Promotions" Record="rec" Field="TimesRetired" Max="9999" />
+    }
+</div>
+
+@code {
+    [CascadingParameter] public EditorState S { get; set; } = default!;
+}

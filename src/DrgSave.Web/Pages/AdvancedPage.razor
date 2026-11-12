@@ -1,0 +1,32 @@
+<div class="toolbar">
+    <button class="@(_log ? "" : "primary")" @onclick="() => _log = false">Every field</button>
+    <button class="@(_log ? "primary" : "")" @onclick="() => _log = true">Activity log</button>
+</div>
+@if (_log)
+{
+    <pre class="log">@string.Join("\n", S.LogLines)</pre>
+}
+else
+{
+    <p class="note">For people who know what they are doing: every field in the file. Edit the value boxes.</p>
+    <div class="tree">
+        <div class="node"><b>Name</b><b>Type</b><b>Value</b></div>
+        <TreeView Nodes="Roots" />
+    </div>
+}
+
+@code {
+    [CascadingParameter] public EditorState S { get; set; } = default!;
+    private bool _log;
+    private List<TreeNode>? _roots;
+    private GvasFile? _for;
+
+    private List<TreeNode> Roots
+    {
+        get
+        {
+            if (_roots == null || !ReferenceEquals(_for, S.Save!.File)) { _for = S.Save!.File; _roots = TreeNode.Roots(_for); }
+            return _roots;
+        }
+    }
+}

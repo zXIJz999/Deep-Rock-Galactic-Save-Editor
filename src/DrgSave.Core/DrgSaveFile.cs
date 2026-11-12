@@ -25,6 +25,21 @@ public sealed class DrgSaveFile
 
     public static DrgSaveFile Load(string path) => new(path, System.IO.File.ReadAllBytes(path));
 
+    /// <summary>Loads a save from memory; <paramref name="name"/> is kept as its path (used by the web editor).</summary>
+    public static DrgSaveFile Load(byte[] data, string name) => new(name, data);
+
+    /// <summary>
+    /// The bytes to write, checked to read back identically. Throws when the check fails, so a
+    /// save the editor cannot read back is never written.
+    /// </summary>
+    public byte[] Export()
+    {
+        var bytes = File.ToBytes();
+        if (!GvasFile.Load(bytes).ToBytes().AsSpan().SequenceEqual(bytes))
+            throw new GvasFormatException("Self-check failed: the edited save does not read back the same. Nothing was saved.");
+        return bytes;
+    }
+
     /// <summary>True when writing the save unchanged gives back the exact bytes that were read.</summary>
     public bool RoundTrips() => File.ToBytes().AsSpan().SequenceEqual(Original);
 
@@ -38,7 +53,7 @@ public sealed class DrgSaveFile
             backup = $"{path}.{DateTime.Now:yyyyMMdd-HHmmss}.bak";
             System.IO.File.Copy(path, backup, overwrite: false);
         }
-        var bytes = File.ToBytes();
+        var bytes = Export();
         System.IO.File.WriteAllBytes(path, bytes);
         Path = path;
         Original = bytes;

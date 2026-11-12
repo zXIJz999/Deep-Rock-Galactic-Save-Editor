@@ -1,0 +1,18 @@
+<div class="form" style="max-width:820px">
+    <p class="note">Season XP is the total. Every @DrgKnown.XpPerSeasonLevel.ToString("N0") XP is one season level (level 100 = @((100 * DrgKnown.XpPerSeasonLevel).ToString("N0"))).</p>
+    @{ var seasons = S.Save!.SeasonRecords(); }
+    @if (seasons.Count == 0)
+    {
+        <p class="note">This save has no seasons.</p>
+    }
+    @foreach (var (id, rec) in seasons)
+    {
+        <h2>@(DrgKnown.ResourceName(id) ?? $"Season {id}")</h2>
+        <FieldNumber Label="Season XP" Record="rec" Field="XP" Max="@(100 * DrgKnown.XpPerSeasonLevel)" />
+        <FieldNumber Label="Scrip" Record="rec" Field="Tokens" Max="9999" />
+    }
+</div>
+
+@code {
+    [CascadingParameter] public EditorState S { get; set; } = default!;
+}

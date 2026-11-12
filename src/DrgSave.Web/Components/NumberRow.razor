@@ -1,0 +1,27 @@
+@* A labelled whole-number box with a Max button, as on the desktop editor. *@
+<div class="row">
+    <label>@Label</label>
+    @if (Value == null)
+    {
+        <span class="muted">not in this save</span>
+    }
+    else
+    {
+        <input type="number" min="0" max="@Max" value="@Value" @onchange="Changed" />
+    }
+    <span class="trail">@if (Value != null) { <button @onclick="() => Set(Max)">Max</button> }</span>
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public int? Value { get; set; }
+    [Parameter] public int Max { get; set; } = int.MaxValue;
+    [Parameter] public EventCallback<int> OnSet { get; set; }
+
+    private async Task Changed(ChangeEventArgs e)
+    {
+        if (long.TryParse(e.Value?.ToString(), out var n)) await Set((int)Math.Clamp(n, 0, Max));
+    }
+
+    private Task Set(int v) => OnSet.InvokeAsync(v);
+}

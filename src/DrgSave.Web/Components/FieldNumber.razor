@@ -1,0 +1,19 @@
+@* A number box bound to an int field of a struct (class XP, season XP...). *@
+<NumberRow Label="@Label" Value="@(DrgSaveFile.Field(Record, Field)?.Value as int?)" Max="Max" OnSet="Set" />
+
+@code {
+    [CascadingParameter] public EditorState S { get; set; } = default!;
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public GvasStruct Record { get; set; } = default!;
+    [Parameter] public string Field { get; set; } = "";
+    [Parameter] public int Max { get; set; } = int.MaxValue;
+
+    private void Set(int v)
+    {
+        var p = DrgSaveFile.Field(Record, Field);
+        if (p == null || Equals(p.Value, v)) return;
+        p.Value = v;
+        S.MarkDirty();
+        S.Log($"{Label} set to {v:N0}.");
+    }
+}

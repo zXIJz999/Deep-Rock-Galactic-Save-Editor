@@ -28,6 +28,14 @@ for that. **Paid DLC items are never unlocked.**
 Big cosmetic lists (headwear) can take a while to appear in game the first time: the game draws
 every icon.
 
+## Use it in your browser (no download)
+
+Open the **web editor** on this repository's GitHub Pages site: `https://<owner>.github.io/<repo>/`
+(the link is in the repository's About box). It does everything the exe does and works on any
+computer with a modern browser. It runs entirely on your own PC: your save is **never
+uploaded**. **Save (download)** gives you the edited file with the same name; your original
+file is not changed, so it is your backup.
+
 ## The pages
 
 | Page | What you can change |
@@ -85,6 +93,12 @@ DevExpress, `DrgSave.Core` has no UI and can be put behind any other GUI.
 | `DrgSave.Editor` | The editor |
 | `DrgSave.Dump` | Builds `items.tsv` from your own copy of the game: `--list`, `--extract`, `--catalog` |
 | `DrgSave.Tests` | Console test runner |
+| `DrgSave.Web` | The browser version (Blazor WebAssembly, no DevExpress needed). Published to GitHub Pages by `.github/workflows/pages.yml` |
+
+Every write goes through `DrgSave.Core` (`DrgSaveFile`, `DrgUnlocks`), so the exe and the web
+page produce byte-identical saves for the same edits. To run the web editor locally:
+`dotnet run --project src\DrgSave.Web`. To publish it, set **Settings > Pages > Source: GitHub
+Actions** in the repository; every push to `main` then updates the site.
 
 `items.tsv` lists every ownable item (ID, English name, class, Forge category, DLC flag). Save
 layout notes: [docs/RESEARCH.md](docs/RESEARCH.md). Game files and saves are not in this

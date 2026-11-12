@@ -304,97 +304,37 @@ internal sealed class MainForm : XtraForm
             x, y, 900, 26, color: Ui.Warning));
         y += 36;
 
-        page.Controls.Add(Ui.Label("Forge schematics", x, y, Ui.HeadingFont)); y += 34;
-        page.Controls.Add(Ui.TextBlock(
-            "Adds schematics as found but not forged, as if they dropped in a mission. Forge them at the Forge in the Space Rig (max your resources on the Resources page first).",
-            x, y, 900, 44, color: Ui.Dim));
-        y += 52;
-        var owned = DrgSaveFile.Ids(_save!.SchematicList("OwnedSchematics", false));
-        var forged = DrgSaveFile.Ids(_save.SchematicList("ForgedSchematics", false));
-        foreach (var (category, label) in DrgItems.SchematicGroups)
+        // The actions themselves are in Core (DrgUnlocks), shared with the web editor.
+        string? section = null;
+        foreach (var g in DrgUnlocks.Groups)
         {
-            var ids = DrgItems.All.Where(i => i.Kind == "Schematic" && i.Category == category && !i.Dlc).Select(i => i.Id).ToList();
-            if (ids.Count == 0) continue;
-            int have = ids.Count(id => owned.Contains(id) || forged.Contains(id));
-            var status = Ui.Label($"{have} of {ids.Count} found or forged", x + 300, y + 9, color: Ui.Dim);
-            page.Controls.Add(Ui.Label(label, x, y + 7, Ui.BigFont));
-            page.Controls.Add(status);
-            page.Controls.Add(Ui.Button("Give all", x + 560, 120, (_, _) =>
+            if (g.Section != section)
             {
-                int added = _save.AddOwnedSchematics(ids);
+                section = g.Section;
+                if (y > 60) y += 16;
+                page.Controls.Add(Ui.Label(section, x, y, Ui.HeadingFont)); y += 34;
+                if (section == DrgUnlocks.SchematicsSection)
+                {
+                    page.Controls.Add(Ui.TextBlock(DrgUnlocks.SchematicsNote, x, y, 900, 44, color: Ui.Dim));
+                    y += 52;
+                }
+            }
+            var group = g;
+            var status = Ui.Label(g.Status(_save!), x + 300, y + 9, color: Ui.Dim);
+            page.Controls.Add(Ui.Label(g.Label, x, y + 7, Ui.BigFont));
+            page.Controls.Add(status);
+            page.Controls.Add(Ui.Button(g.Button, x + 560, 120, (_, _) =>
+            {
+                int added = group.Apply(_save!);
                 if (added > 0) MarkDirty();
-                Log($"{label}: {added} schematics added.");
-                status.Text = $"{ids.Count} of {ids.Count} found or forged";
+                Log($"{group.Label}: {added} added.");
+                status.Text = added > 0 ? group.Status(_save!) : "all already unlocked";
             }, y));
             y += 44;
         }
-
-        y += 16;
-        page.Controls.Add(Ui.Label("Cosmetics for every class", x, y, Ui.HeadingFont)); y += 34;
-        var vanity = DrgItems.All.Where(i => i.Kind.EndsWith("VanityItem", StringComparison.Ordinal) && !i.Dlc).Select(i => i.Id).ToList();
-        var poses = DrgItems.All.Where(i => i.Kind == "VictoryPose" && !i.Dlc).Select(i => i.Id).ToList();
-        y = UnlockRow(page, "Armour, headwear, beards, paints", "Vanity.UnLockedVanityItemIDs", vanity, x, y,
-            alsoAdd: () => DrgSaveFile.AddIds(_save.RootGuidArray("UnLockedVanityItemIDs"), vanity));
-        y = UnlockRow(page, "Victory poses", "VictoryPose.UnlockedVictoryPoses", poses, x, y);
-
-        y += 16;
-        page.Controls.Add(Ui.Label("Weapons and gear", x, y, Ui.HeadingFont)); y += 40;
-        var items = DrgItems.All;
-        // Only class equipment: event pods and the like have no owning class.
-        var weapons = items.Where(i => i.Kind == "ItemID" && !i.Dlc && i.Owner is "Driller" or "Engineer" or "Gunner" or "Scout").Select(i => i.Id).ToList();
-        var upgrades = items.Where(i => i.IsWeaponUpgrade && !i.Dlc).Select(i => i.Id).ToList();
-        var skins = items.Where(i => i.Kind == "ItemSkin" && !i.Dlc && i.Item.Length > 0).Select(i => (i.Item, i.Id)).ToList();
-        var pickaxe = items.Where(i => i.Kind == "PickaxePart" && !i.Dlc).Select(i => i.Id).ToList();
-        var drinks = items.Where(i => i.Kind == "DrinkableDataAsset" && !i.Dlc).Select(i => i.Id).ToList();
-        y = RootRow(page, "Weapons and tools", weapons.Count, () =>
-        {
-            // The game keeps both lists: unlocked (can buy) and owned (bought).
-            int added = DrgSaveFile.AddIds(_save.RootGuidArray("UnlockedItems"), weapons);
-            DrgSaveFile.AddIds(_save.RootGuidArray("OwnedItems"), weapons);
-            return added;
-        }, x, y);
-        y = RootRow(page, "Weapon upgrades (all tiers)", upgrades.Count, () => DrgSaveFile.AddIds(_save.RootGuidArray("PurchasedItemUpgrades"), upgrades), x, y);
-        y = RootRow(page, "Weapon paint jobs and frameworks", skins.Count, () => _save.AddItemSkins(skins), x, y);
-        y = RootRow(page, "Pickaxe parts", pickaxe.Count, () => DrgSaveFile.AddIds(_save.RootGuidSet("UnlockedPickaxeParts"), pickaxe), x, y);
-        y = RootRow(page, "Abyss Bar drinks", drinks.Count, () => DrgSaveFile.AddIds(_save.DrinkSet(), drinks), x, y);
         y += 8;
-        page.Controls.Add(Ui.TextBlock("Perks: give yourself perk points on the Resources page and claim the perks in game.", x, y, 900, 30, color: Ui.Dim));
+        page.Controls.Add(Ui.TextBlock(DrgUnlocks.PerksNote, x, y, 900, 30, color: Ui.Dim));
         return page;
-    }
-
-    private int RootRow(Control page, string label, int total, Func<int> unlock, int x, int y)
-    {
-        var status = Ui.Label($"{total} available", x + 300, y + 9, color: Ui.Dim);
-        page.Controls.Add(Ui.Label(label, x, y + 7, Ui.BigFont));
-        page.Controls.Add(status);
-        page.Controls.Add(Ui.Button("Unlock all", x + 560, 120, (_, _) =>
-        {
-            int added = unlock();
-            if (added > 0) MarkDirty();
-            Log($"{label}: {added} added.");
-            status.Text = added > 0 ? $"{added} added" : "all already unlocked";
-        }, y));
-        return y + 44;
-    }
-
-    private int UnlockRow(Control page, string label, string path, List<string> ids, int x, int y, Func<int>? alsoAdd = null)
-    {
-        var dwarves = _save!.Characters().Where(c => DrgKnown.Dwarves.Any(d => string.Equals(d.Guid, c.id, StringComparison.OrdinalIgnoreCase))).ToList();
-        int Have() => dwarves.Sum(d => DrgSaveFile.Ids(DrgSaveFile.ClassArray(d.record, path)).Count(ids.Contains));
-        var status = Ui.Label($"{Have()} of {ids.Count * dwarves.Count} unlocked", x + 300, y + 9, color: Ui.Dim);
-        page.Controls.Add(Ui.Label(label, x, y + 7, Ui.BigFont));
-        page.Controls.Add(status);
-        page.Controls.Add(Ui.Button("Unlock all", x + 560, 120, (_, _) =>
-        {
-            int added = 0;
-            foreach (var d in dwarves)
-                if (DrgSaveFile.ClassArray(d.record, path) is { } array) added += DrgSaveFile.AddIds(array, ids);
-            if (alsoAdd != null) added += alsoAdd();
-            if (added > 0) MarkDirty();
-            Log($"{label}: {added} added across {dwarves.Count} classes.");
-            status.Text = $"{Have()} of {ids.Count * dwarves.Count} unlocked";
-        }, y));
-        return y + 44;
     }
 
     /// <summary>Season XP and scrip for every season in the save.</summary>
